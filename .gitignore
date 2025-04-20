@@ -1,1 +1,3 @@
-raw_data/raw_data/SI-RADET.csv
+raw_data/*.csv
+transformed_data/*.csv
+.env
