@@ -1,0 +1,59 @@
+from airflow import DAG # type: ignore
+from airflow.operators.python import PythonOperator # type: ignore
+from airflow.operators.bash import BashOperator # type: ignore
+from airflow.operators.dummy import DummyOperator # type: ignore
+from datetime import datetime, timedelta
+import sys
+import os
+
+# Assuming these scripts are in a directory relative to the DAG file
+sys.path.insert(0, os.path.abspath(r"C:Users/back2/Desktop/GWIHR_IHVN_PROJECT/ASPIRE_DATA_csv.csv/dags/modules"))
+
+from Extract import extract_csv_to_df
+from Transform import clean_dataframe
+from create_df_table import create_data_frame
+from load import load_data
+
+
+
+default_args = {
+    'owner': 'GWIHR',
+    'depends_on_past': False,
+    'email_on_failure': True,
+    'email': ['ifigeorgeifi@yahoo.com'],
+    'retries': None,
+    'retry_delay': None,
+}
+
+# Instantiate the Dag
+with DAG(
+    dag_id='hiv_response_etl',
+    default_args=default_args,
+    description='ETL pipeline for Century Bank data to PostgreSQL',
+    schedule_interval='@monthly',  # Or use None for manual trigger
+    start_date=datetime(2019, 8, 29),
+    catchup=False,
+    tags=['hiv', 'etl', 'pyspark', 'postgresql'],
+) as dag:
+    
+    extract_task = PythonOperator(
+        task_id='extract_data',
+        python_callable=extract_csv_to_df,
+    )
+
+    transform_task = PythonOperator(
+        task_id='transform_data',
+        python_callable=clean_dataframe,
+    )
+
+    create_database_tables_task = PythonOperator(
+        task_id='create_df_data',
+        python_callable=create_data_frame,
+    )
+
+    load_task = PythonOperator(
+        task_id='load_data',
+        python_callable=load_data,
+    )
+
+    extract_task >> transform_task >> create_database_tables_task >> load_task
